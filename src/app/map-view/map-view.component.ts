@@ -1,8 +1,9 @@
 import { Component, OnInit } from '@angular/core';
 import * as L from 'leaflet';
-import { stops } from '../stop-data';
+import { Stop } from '../stop-data';
 import { FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
+import { StopService } from '../services/stop.service';
 
 @Component({
   selector: 'app-map-view',
@@ -20,9 +21,15 @@ export class MapViewComponent implements OnInit {
   searchQuery = "";
   showDisabled = true;
   showDisabledLegend = true;
+  showRadius = true;
+  showRoutes = true;
 
   enabledStops: Set<string> = new Set();
-  public stops = stops;
+  public stops: Stop[] = [];
+
+  constructor(private stopService: StopService) {
+
+  }
 
   filteredStops() {
     const query = this.searchQuery.toLowerCase();
@@ -32,14 +39,19 @@ export class MapViewComponent implements OnInit {
   }
 
   ngOnInit(): void {
+    this.stops = this.stopService.getStops();
     this.loadZoneRadius();
     this.loadEnabledStops();
     this.initMap();
     this.plotStops();
+    this.plotRoutes();
   }
 
   private initMap(): void {
-    this.map = L.map('map').setView([42.31777149063969, -83.04336801890909], 13);
+    const firstStop = this.stops[0];
+    const lat = firstStop?.stop_lat ?? 0;
+    const lon = firstStop?.stop_lon ?? 0;
+    this.map = L.map('map').setView([lat, lon], 13);
 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '&copy; OpenStreetMap contributors'
@@ -136,7 +148,7 @@ export class MapViewComponent implements OnInit {
         this.markers.push(marker);
       }
 
-      if (isEnabled) {
+      if (isEnabled && this.showRadius) {
         const circle = L.circle([lat, lon], {
           radius: this.zoneRadius,
           color: 'blue',
@@ -217,5 +229,89 @@ export class MapViewComponent implements OnInit {
     reader.readAsText(file);
   }
 
+  routeLines: L.Polyline[] = [];
+
+  resetRoutes() {
+    this.removePlottedRoutes();
+    this.plotRoutes();
+  }
+
+  private removePlottedRoutes(): void {
+    if (!this.map) return;
+
+    this.routeLines.forEach(line => this.map!.removeLayer(line));
+
+    this.routeLines = [];
+  }
+
+  private plotRoutes(): void {
+    if(!this.showRoutes) return;
+
+    const routes = this.stopService.getRoutes();
+    if (!this.map || !routes) return;
+
+    let index = 0;
+    console.log(routes.length)
+    for (const route of routes) {
+      if (!route.shape || route.shape.length === 0) continue;
+
+      const latlngs: [number, number][] = route.shape
+        .map((pt: any) => {
+          const lat = parseFloat(pt.shape_pt_lat);
+          const lon = parseFloat(pt.shape_pt_lon);
+          return isNaN(lat) || isNaN(lon) ? null : [lat, lon] as [number, number];
+        })
+        .filter((pt): pt is [number, number] => pt !== null);
+
+      if (latlngs.length === 0) continue;
+
+      // Use route color if defined, fallback to a random color
+      const color = this.colors[index];
+
+      const line = L.polyline(latlngs, {
+        color: color,
+        weight: 8,
+        opacity: 0.8
+      }).addTo(this.map);
+
+      this.routeLines.push(line);
+
+      index++;
+    }
+  }
+
+  colors: string[] = [
+    "#FF5733", // Red-Orange
+    "#FF8D1A", // Amber
+    "#FFC300", // Yellow
+    "#FFB6C1", // Light Pink
+    "#FF1493", // Deep Pink
+    "#00FF00", // Lime
+    "#32CD32", // Lime Green
+    "#008000", // Green
+    "#228B22", // Forest Green
+    "#00FFFF", // Aqua
+    "#1E90FF", // Dodger Blue
+    "#0000FF", // Blue
+    "#4169E1", // Royal Blue
+    "#8A2BE2", // Blue Violet
+    "#9932CC", // Dark Orchid
+    "#8B008B", // Dark Magenta
+    "#D2691E", // Chocolate
+    "#FF6347", // Tomato
+    "#FF4500", // Orange Red
+    "#FFD700", // Gold
+    "#F4A300", // Orange
+    "#FF69B4", // Hot Pink
+    "#FF1493", // Deep Pink
+    "#ADFF2F", // Green Yellow
+    "#C71585", // Medium Violet Red
+    "#7FFF00", // Chartreuse
+    "#FF00FF", // Magenta
+    "#C71585", // Medium Violet Red
+    "#1E90FF", // Dodger Blue
+    "#B22222", // Firebrick
+    "#FF8C00", // Dark Orange
+  ];
 
 }

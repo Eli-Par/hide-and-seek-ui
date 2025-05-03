@@ -3,8 +3,8 @@
 
     <div class="sidebar">
         <div class="top-controls">
-            <label>Zone Radius</label>
-            <input type="number" [(ngModel)]="zoneRadius" (ngModelChange)="zoneRadiusChanged()" />
+            <label>Zone Radius:</label>
+            <input type="number" [(ngModel)]="zoneRadius" (ngModelChange)="zoneRadiusChanged()" class="text-input" />
             <div class="controls">
                 <button (click)="exportEnabledStops()">Export Stops</button>
                 <button (click)="fileInput.click()">Import Stops</button>
@@ -22,6 +22,14 @@
                 <label>Show disabled in legend</label>
                 <input type="checkbox" [(ngModel)]="showDisabledLegend" />
             </div>
+            <div>
+                <label>Show radius</label>
+                <input type="checkbox" [(ngModel)]="showRadius" (ngModelChange)="resetPlot()" />
+            </div>
+            <div>
+                <label>Show Routes</label>
+                <input type="checkbox" [(ngModel)]="showRoutes" (ngModelChange)="resetRoutes()" />
+            </div>
             <input [(ngModel)]="searchQuery" placeholder="Search stops..." />
         </div>
 
@@ -29,7 +37,7 @@
             <div *ngFor="let stop of filteredStops()">
                 <label>
                     <input type="checkbox" [checked]="enabledStops.has(stop.stop_id)"
-                        (change)="toggleStop(stop.stop_id)" />
+                        (change)="toggleStop(stop.stop_id)" class="text-input" />
                     {{ stop.stop_name }}
                 </label>
             </div>

@@ -1,1 +1,9 @@
-<app-map-view />
+@if(stopLoaded) {
+  <app-map-view />
+}
+@else {
+  <input type="file" #fileInput style="display: none"
+    (change)="fileUploaded(fileInput.files?.[0]); fileInput.value = ''" />
+  
+  <button (click)="fileInput.click()">Upload Stops File</button>
+}
