@@ -2,14 +2,14 @@ import { Component, OnInit } from '@angular/core';
 import * as L from 'leaflet';
 import { stops } from '../stop-data';
 import { FormsModule } from '@angular/forms';
+import { CommonModule } from '@angular/common';
 
 @Component({
   selector: 'app-map-view',
+  standalone: true,
   templateUrl: './map-view.component.html',
-  styleUrl: './map-view.component.scss',
-  imports: [
-    FormsModule,
-  ],
+  styleUrls: ['./map-view.component.scss'],
+  imports: [FormsModule, CommonModule],
 })
 export class MapViewComponent implements OnInit {
   private map: L.Map | undefined;
@@ -17,9 +17,23 @@ export class MapViewComponent implements OnInit {
   private circles: L.Circle[] = [];
 
   zoneRadius = 500;
-  zoneOverlap = 500;
+  searchQuery = "";
+  showDisabled = true;
+  showDisabledLegend = true;
+
+  enabledStops: Set<string> = new Set();
+  public stops = stops;
+
+  filteredStops() {
+    const query = this.searchQuery.toLowerCase();
+    return this.stops.filter(stop =>
+      stop.stop_name.toLowerCase().includes(query) && (this.showDisabledLegend || this.enabledStops.has(stop.stop_id))
+    );
+  }
 
   ngOnInit(): void {
+    this.loadZoneRadius();
+    this.loadEnabledStops();
     this.initMap();
     this.plotStops();
   }
@@ -30,9 +44,61 @@ export class MapViewComponent implements OnInit {
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '&copy; OpenStreetMap contributors'
     }).addTo(this.map);
+
+    this.setupMapRightClick();
   }
 
-  resetPlot() {
+
+  private loadZoneRadius(): void {
+    const savedZoneRadius = localStorage.getItem('zoneRadius');
+    if (savedZoneRadius) {
+      this.zoneRadius = parseInt(savedZoneRadius, 10);
+    }
+  }
+
+  private saveZoneRadius(): void {
+    localStorage.setItem('zoneRadius', this.zoneRadius.toString());
+  }
+
+  zoneRadiusChanged() {
+    this.saveZoneRadius();
+    this.resetPlot();
+  }
+
+  private setupMapRightClick(): void {
+    this.map?.on('contextmenu', (e: L.LeafletMouseEvent) => {
+      const lat = e.latlng.lat;
+      const lon = e.latlng.lng;
+
+      let closestStop = null;
+      let minDistance = 200;
+
+      for (const stop of this.stops) {
+        const distance = this.getDistance(stop.stop_lat, stop.stop_lon, lat, lon);
+        if (distance < minDistance) {
+          minDistance = distance;
+          closestStop = stop;
+        }
+      }
+
+      if (closestStop) {
+        this.toggleStop(closestStop.stop_id);
+      }
+    });
+  }
+
+  toggleAllStopsOff(): void {
+    // Create a new set with all stop IDs
+    this.enabledStops = new Set();
+
+    // Persist to local storage
+    this.saveEnabledStops();
+
+    // Redraw the map with all circles removed
+    this.resetPlot();
+  }
+
+  resetPlot(): void {
     this.removePlottedStops();
     this.plotStops();
   }
@@ -40,90 +106,115 @@ export class MapViewComponent implements OnInit {
   private removePlottedStops(): void {
     if (!this.map) return;
 
-    // Remove all markers
-    this.markers.forEach(marker => {
-      this.map?.removeLayer(marker);
-    });
+    this.markers.forEach(marker => this.map!.removeLayer(marker));
+    this.circles.forEach(circle => this.map!.removeLayer(circle));
 
-    // Remove all circles
-    this.circles.forEach(circle => {
-      this.map?.removeLayer(circle);
-    });
-
-    // Optionally, clear the arrays if you want to start fresh
     this.markers = [];
     this.circles = [];
   }
 
-
   private plotStops(): void {
     if (!this.map) return;
 
-    // Define the keywords that should always show a circle
-    const keywords = ['Terminal', 'Station', 'Hub', 'Devonshire'];
+    for (const stop of this.stops) {
+      const lat = stop.stop_lat;
+      const lon = stop.stop_lon;
 
-    // Function to calculate distance between two points (in meters)
-    const getDistance = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
-      const R = 6371e3; // Earth's radius in meters
-      const φ1 = lat1 * Math.PI / 180; // Latitude in radians
-      const φ2 = lat2 * Math.PI / 180;
-      const Δφ = (lat2 - lat1) * Math.PI / 180; // Difference in latitudes
-      const Δλ = (lon2 - lon1) * Math.PI / 180; // Difference in longitudes
+      const isEnabled = this.enabledStops.has(stop.stop_id);
 
-      const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
-        Math.cos(φ1) * Math.cos(φ2) *
-        Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
-      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-
-      return R * c; // Distance in meters
-    };
-
-    // Keep track of plotted stops (lat, lon)
-    const plottedStops: Array<{ lat: number, lon: number }> = [];
-
-    for (const stop of stops) {
-      const stopLat = stop.stop_lat;
-      const stopLon = stop.stop_lon;
-
-      let shouldPlotCircle = true;
-
-      // Check if the stop name contains any of the keywords
-      if (keywords.some(keyword => stop.stop_name.includes(keyword))) {
-        shouldPlotCircle = true; // Always plot a circle for these stops
-      } else {
-        // Check if this stop is within a certain distance (e.g., 500 meters) of an already plotted stop
-        for (const plottedStop of plottedStops) {
-          const distance = getDistance(plottedStop.lat, plottedStop.lon, stopLat, stopLon);
-          if (distance < this.zoneOverlap) { // If within 500 meters, don't plot a circle
-            shouldPlotCircle = false;
-            break;
-          }
-        }
+      // Plot marker
+      if(isEnabled || this.showDisabled) {
+        const marker = L.marker([lat, lon], {
+          icon: L.divIcon({
+            className: 'leaflet-div-icon',
+            html: `<div style="background-color: ${(isEnabled ? 'green' : 'red')}; width: 6px; height: 6px;"></div>`,
+            iconSize: [6, 6],
+            iconAnchor: [3, 3],
+          }),
+        }).addTo(this.map!);
+        marker.bindPopup(stop.stop_name);
+        this.markers.push(marker);
       }
 
-      // Create a small dot marker
-      const marker = L.marker([stopLat, stopLon], {
-        icon: L.divIcon({
-          className: 'leaflet-div-icon',
-          html: '<div style="background-color: red; width: 6px; height: 6px; border-radius: 50%;"></div>',
-          iconSize: [6, 6], // Small size for the dot
-          iconAnchor: [3, 3], // Anchor the icon in the center
-        }),
-      }).addTo(this.map);
-      marker.bindPopup(stop.stop_name);
-      this.markers.push(marker);
-
-      // Plot a circle if needed
-      if (shouldPlotCircle) {
-        plottedStops.push({ lat: stopLat, lon: stopLon });
-        const circlePlot = L.circle([stopLat, stopLon], {
-          radius: this.zoneRadius, // in meters
+      if (isEnabled) {
+        const circle = L.circle([lat, lon], {
+          radius: this.zoneRadius,
           color: 'blue',
-          fillOpacity: 0.2
-        }).addTo(this.map);
-        this.circles.push(circlePlot);
+          fillOpacity: 0.2,
+        }).addTo(this.map!);
+        this.circles.push(circle);
       }
     }
+  }
+
+  toggleStop(stopId: string): void {
+    if (this.enabledStops.has(stopId)) {
+      this.enabledStops.delete(stopId);
+    } else {
+      this.enabledStops.add(stopId);
+    }
+    this.saveEnabledStops();
+    this.resetPlot();
+  }
+
+  private loadEnabledStops(): void {
+    const saved = localStorage.getItem('enabledStops');
+    if (saved) {
+      this.enabledStops = new Set(JSON.parse(saved));
+    }
+  }
+
+  private saveEnabledStops(): void {
+    localStorage.setItem('enabledStops', JSON.stringify([...this.enabledStops]));
+  }
+
+  private getDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
+    const R = 6371e3;
+    const φ1 = lat1 * Math.PI / 180;
+    const φ2 = lat2 * Math.PI / 180;
+    const Δφ = (lat2 - lat1) * Math.PI / 180;
+    const Δλ = (lon2 - lon1) * Math.PI / 180;
+
+    const a = Math.sin(Δφ / 2) ** 2 +
+      Math.cos(φ1) * Math.cos(φ2) *
+      Math.sin(Δλ / 2) ** 2;
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+    return R * c;
+  }
+
+  exportEnabledStops(): void {
+    const data = [...this.enabledStops].join('\n');
+    const blob = new Blob([data], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'stop_list.txt';
+    a.click();
+
+    URL.revokeObjectURL(url);
+  }
+
+  importEnabledStops(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    if (!input.files || input.files.length === 0) return;
+
+    const file = input.files[0];
+    const reader = new FileReader();
+
+    reader.onload = () => {
+      const content = reader.result as string;
+      const ids = content.split('\n').map(id => id.trim()).filter(id => id);
+      this.enabledStops = new Set(ids);
+      this.saveEnabledStops();
+      this.resetPlot();
+
+      // ✅ Reset input so the same file can be imported again
+      input.value = '';
+    };
+
+    reader.readAsText(file);
   }
 
 

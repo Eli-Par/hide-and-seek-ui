@@ -1,10 +1,38 @@
-<div id="map" style="height: 90vh;"></div>
-<div>
-    <label>Zone Radius</label>
-    <input [(ngModel)]="zoneRadius" />
+<div class="container">
+    <div id="map"></div>
 
-    <label>Zone Overlap</label>
-    <input [(ngModel)]="zoneOverlap" />
+    <div class="sidebar">
+        <div class="top-controls">
+            <label>Zone Radius</label>
+            <input type="number" [(ngModel)]="zoneRadius" (ngModelChange)="zoneRadiusChanged()" />
+            <div class="controls">
+                <button (click)="exportEnabledStops()">Export Stops</button>
+                <button (click)="fileInput.click()">Import Stops</button>
+                <input type="file" #fileInput (change)="importEnabledStops($event)" accept=".txt" hidden />
+            </div>
+            <hr />
+            <h3>
+                Stops {{enabledStops.size}} / {{stops.length}} 
+            </h3>
+            <div>
+                <label>Show disabled on map</label>
+                <input type="checkbox" [(ngModel)]="showDisabled" (ngModelChange)="resetPlot()" />
+            </div>
+            <div>
+                <label>Show disabled in legend</label>
+                <input type="checkbox" [(ngModel)]="showDisabledLegend" />
+            </div>
+            <input [(ngModel)]="searchQuery" placeholder="Search stops..." />
+        </div>
 
-    <button (click)="resetPlot()">Refresh</button>
+        <div class="stop-bar">
+            <div *ngFor="let stop of filteredStops()">
+                <label>
+                    <input type="checkbox" [checked]="enabledStops.has(stop.stop_id)"
+                        (change)="toggleStop(stop.stop_id)" />
+                    {{ stop.stop_name }}
+                </label>
+            </div>
+        </div>
+    </div>
 </div>
