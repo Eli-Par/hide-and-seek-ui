@@ -8,3 +8,79 @@ body {
     margin: 0px;
     padding: 0px;
 }
+
+/* Default button styling (minimal, compact) */
+button {
+    background-color: transparent;
+    /* No background */
+    color: #333;
+    /* Dark text */
+    border: 2px solid #ccc;
+    /* Light border */
+    padding: 8px 16px;
+    /* Small padding */
+    font-size: 14px;
+    /* Smaller font size */
+    text-align: center;
+    /* Center text inside button */
+    text-decoration: none;
+    /* Remove underline */
+    display: inline-block;
+    /* Inline display */
+    cursor: pointer;
+    /* Pointer cursor */
+    border-radius: 4px;
+    /* Slightly rounded corners */
+    transition: background-color 0.2s, border-color 0.2s;
+    /* Smooth transition */
+}
+
+/* Default button hover effect */
+button:hover {
+    background-color: #f5f5f5;
+    /* Light background on hover */
+    border-color: #888;
+    /* Darker border on hover */
+}
+
+/* Primary button styling (special style) */
+button.primary {
+    background-color: #4CAF50;
+    /* Green background */
+    color: white;
+    /* White text */
+    border: none;
+    /* No border */
+    padding: 12px 24px;
+    /* Slightly larger padding */
+    font-size: 16px;
+    /* Larger font size */
+    text-align: center;
+    /* Center text inside button */
+    text-decoration: none;
+    /* Remove underline */
+    display: inline-block;
+    /* Allow button to line up horizontally */
+    cursor: pointer;
+    /* Pointer cursor */
+    border-radius: 8px;
+    /* Rounded corners */
+    transition: background-color 0.3s, transform 0.3s;
+    /* Smooth transition */
+}
+
+/* Primary button hover effect */
+button.primary:hover {
+    background-color: #45a049;
+    /* Darker green when hovered */
+    transform: scale(1.05);
+    /* Slightly enlarge the button */
+}
+
+/* Focus effect for accessibility */
+button:focus {
+    outline: none;
+    /* Remove default outline */
+    box-shadow: 0 0 10px #4CAF50;
+    /* Add glowing outline for primary button */
+}

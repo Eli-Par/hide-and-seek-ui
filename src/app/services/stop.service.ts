@@ -46,18 +46,18 @@ export class StopService {
           // Optionally, you can add more specific checks for shape, color, etc.
         });
 
-        const seenHeadsigns = new Set<string>();
-        const newRoutes = data.routes.reduce((uniqueRoutes: Route[], route: Route) => {
-          if (!seenHeadsigns.has(route.trip_headsign)) {
-            seenHeadsigns.add(route.trip_headsign);
-            uniqueRoutes.push(route);
-          }
-          return uniqueRoutes;
-        }, []);
+        // const seenHeadsigns = new Set<string>();
+        // const newRoutes = data.routes.reduce((uniqueRoutes: Route[], route: Route) => {
+        //   if (!seenHeadsigns.has(route.trip_headsign)) {
+        //     seenHeadsigns.add(route.trip_headsign);
+        //     uniqueRoutes.push(route);
+        //   }
+        //   return uniqueRoutes;
+        // }, []);
 
         // If all checks pass, update the BehaviorSubjects
         this.stops$.next(data.stops);
-        this.routes$.next(newRoutes);
+        this.routes$.next(data.routes);
 
       } catch (err: any) {
         console.error("Error parsing data file:", err.message);

@@ -261,7 +261,7 @@ export class MapViewComponent implements OnInit {
           const lon = parseFloat(pt.shape_pt_lon);
           return isNaN(lat) || isNaN(lon) ? null : [lat, lon] as [number, number];
         })
-        .filter((pt): pt is [number, number] => pt !== null);
+        .filter((pt: any): pt is [number, number] => pt !== null);
 
       if (latlngs.length === 0) continue;
 

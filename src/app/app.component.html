@@ -2,8 +2,11 @@
   <app-map-view />
 }
 @else {
-  <input type="file" #fileInput style="display: none"
-    (change)="fileUploaded(fileInput.files?.[0]); fileInput.value = ''" />
-  
-  <button (click)="fileInput.click()">Upload Stops File</button>
+  <div class="container">
+    <input type="file" #fileInput style="display: none"
+      (change)="fileUploaded(fileInput.files?.[0]); fileInput.value = ''" />
+    
+    <div>Select a generated data json to load your regions data</div>
+    <button (click)="fileInput.click()" class="primary">Upload Data File</button>
+  </div>
 }
