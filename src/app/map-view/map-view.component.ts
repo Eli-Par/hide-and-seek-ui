@@ -19,13 +19,18 @@ export class MapViewComponent implements OnInit {
 
   zoneRadius = 500;
   searchQuery = "";
-  showDisabled = true;
-  showDisabledLegend = true;
+  showDisabled = false;
+  showDisabledLegend = false;
   showRadius = true;
-  showRoutes = true;
+  showRoutes = false;
 
   enabledStops: Set<string> = new Set();
   public stops: Stop[] = [];
+
+  sidebarCollapsed = true;
+
+  private userMarker: L.CircleMarker | undefined;
+  private accuracyCircle: L.Circle | undefined;
 
   constructor(private stopService: StopService) {
 
@@ -45,6 +50,7 @@ export class MapViewComponent implements OnInit {
     this.initMap();
     this.plotStops();
     this.plotRoutes();
+    this.trackUserLocation();
   }
 
   private initMap(): void {
@@ -58,6 +64,48 @@ export class MapViewComponent implements OnInit {
     }).addTo(this.map);
 
     this.setupMapRightClick();
+  }
+
+  private trackUserLocation(): void {
+    if (!navigator.geolocation || !this.map) return;
+
+    navigator.geolocation.watchPosition(
+      (position) => {
+        if (!this.map) return;
+        const lat = position.coords.latitude;
+        const lon = position.coords.longitude;
+        const accuracy = position.coords.accuracy; // meters
+
+        // Remove previous markers/circle
+        if (this.userMarker) this.map.removeLayer(this.userMarker);
+        if (this.accuracyCircle) this.map.removeLayer(this.accuracyCircle);
+
+        // Blue dot marker
+        this.userMarker = L.circleMarker([lat, lon], {
+          radius: 6,
+          color: 'orange',
+          fillColor: 'orange',
+          fillOpacity: 1,
+        }).addTo(this.map);
+
+        // Accuracy circle
+        this.accuracyCircle = L.circle([lat, lon], {
+          radius: accuracy,
+          color: 'orange',
+          fillColor: 'orange',
+          fillOpacity: 0.1,
+          weight: 1,
+        }).addTo(this.map);
+      },
+      (err) => {
+        console.error('Error getting location', err);
+      },
+      {
+        enableHighAccuracy: true,
+        maximumAge: 1000,
+        timeout: 5000
+      }
+    );
   }
 
 
@@ -78,6 +126,7 @@ export class MapViewComponent implements OnInit {
   }
 
   private setupMapRightClick(): void {
+    return;
     this.map?.on('contextmenu', (e: L.LeafletMouseEvent) => {
       const lat = e.latlng.lat;
       const lon = e.latlng.lng;
@@ -170,14 +219,14 @@ export class MapViewComponent implements OnInit {
   }
 
   private loadEnabledStops(): void {
-    const saved = localStorage.getItem('enabledStops');
-    if (saved) {
-      this.enabledStops = new Set(JSON.parse(saved));
-    }
+    // const saved = localStorage.getItem('enabledStops');
+    // if (saved) {
+    //   this.enabledStops = new Set(JSON.parse(saved));
+    // }
   }
 
   private saveEnabledStops(): void {
-    localStorage.setItem('enabledStops', JSON.stringify([...this.enabledStops]));
+    // localStorage.setItem('enabledStops', JSON.stringify([...this.enabledStops]));
   }
 
   private getDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
