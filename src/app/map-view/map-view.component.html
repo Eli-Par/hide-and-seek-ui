@@ -1,4 +1,32 @@
 <div class="container">
+    <div class="bottom-bar">
+        <button (click)="fileInput.click()">Import Stops</button>
+        <input type="file" #fileInput (change)="importEnabledStops($event)" accept=".txt" hidden />
+    
+        <label>
+            <input type="checkbox" [(ngModel)]="showRadius" (ngModelChange)="resetPlot()" />
+            Show radius
+        </label>
+        <label>
+            <input type="checkbox" [(ngModel)]="showDisabled" (ngModelChange)="resetPlot()" />
+            Show disabled on map
+        </label>
+        <label>
+            <input type="checkbox" [(ngModel)]="showDisabledLegend" />
+            Show disabled in legend
+        </label>
+        <label>
+            <input type="checkbox" [(ngModel)]="showRoutes" (ngModelChange)="resetRoutes()" />
+            Show Routes
+        </label>
+    
+        <h3>Stops {{enabledStops.size}} / {{stops.length}}</h3>
+    
+        <button (click)="sidebarCollapsed = !sidebarCollapsed">
+            {{ sidebarCollapsed ? 'Show Stops' : 'Hide Stops' }}
+        </button>
+    </div>
+    
     <div id="map"></div>
 
     <div class="sidebar" [class.collapsed]="sidebarCollapsed">
@@ -14,33 +42,5 @@
                 </div>
             </div>
         </div>
-    </div>
-
-    <div class="bottom-bar">
-            <button (click)="fileInput.click()">Import Stops</button>
-            <input type="file" #fileInput (change)="importEnabledStops($event)" accept=".txt" hidden />
-
-            <label>
-                <input type="checkbox" [(ngModel)]="showRadius" (ngModelChange)="resetPlot()" />
-                Show radius
-            </label>
-            <label>
-                <input type="checkbox" [(ngModel)]="showDisabled" (ngModelChange)="resetPlot()" />
-                Show disabled on map
-            </label>
-            <label>
-                <input type="checkbox" [(ngModel)]="showDisabledLegend" />
-                Show disabled in legend
-            </label>
-            <label>
-                <input type="checkbox" [(ngModel)]="showRoutes" (ngModelChange)="resetRoutes()" />
-                Show Routes
-            </label>
-
-        <h3>Stops {{enabledStops.size}} / {{stops.length}}</h3>
-
-        <button (click)="sidebarCollapsed = !sidebarCollapsed">
-            {{ sidebarCollapsed ? 'Show Stops' : 'Hide Stops' }}
-        </button>
     </div>
 </div>
